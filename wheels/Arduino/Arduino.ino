@@ -1,7 +1,7 @@
 #include <ros.h>
 #include <ros/time.h> 
-#include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/Twist.h>
+#include <std_msgs/Float64.h>
 //#include <TimerOne.h>
 #include "Variables.h"
 
@@ -12,8 +12,8 @@ void handle_cmd(const geometry_msgs::Twist& cmd_msg){
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &handle_cmd);
 
-void Odom();
 void PID();
+void Odom();
 void Velocity();
 void Motor();
 void Publish();
@@ -48,18 +48,20 @@ void setup()
     nh.initNode();
     nh.getHardware()->setBaud(57600);
     nh.subscribe(sub);
-    nh.advertise(pub_odom);
+    //nh.advertise(pub_odom);
+    nh.advertise(pub_pos);
     nh.advertise(pub_vel);
-
+    nh.advertise(pub_puls_L);
+    nh.advertise(pub_puls_R);
 }
 
 void loop()
 {
     nh.spinOnce();
-    Velocity(); 
+    Velocity();
+    Odom(); 
     PID();
     Motor();
-    Odom();
     Publish();
     delay(10);
 }
@@ -71,32 +73,29 @@ void loop()
 //     Motor();
 // }
 
-void Odom()
-{
-   //compute odometry in a typical way given the velocities of the robot
-   double delta_x = (vx * cos(th) - vy * sin(th)) * 0.01;
-   double delta_y = (vx * sin(th) + vy * cos(th)) * 0.01;
-   double delta_th = vth * 0.01;
-
-   x += delta_x;
-   y += delta_y;
-   th += delta_th; 
-   
-   
-}
-
 void Publish()
 {
-    odom_msg.header.stamp = nh.now();
-    odom_msg.vector.x = x;
-    odom_msg.vector.y = y;
-    odom_msg.vector.z = th;
+    //odom_msg.header.stamp = nh.now();
+    //odom_msg.vector.x = x;
+    //odom_msg.vector.y = y;
+    //odom_msg.vector.z = th;
     
-    vel_msg.vector.x = vx;
-    vel_msg.vector.z = vth;
+    vel_msg.linear.x = vx;
+    vel_msg.angular.z = vth;
+    
+    pos_msg.linear.x = delta_x;
+    pos_msg.linear.y = delta_y;
+    pos_msg.angular.z = delta_th;
+    
+    pulses_left.data = LeftWheel.pulsesPerSecond;
+    pulses_right.data = RightWheel.pulsesPerSecond;
 
-    pub_odom.publish(&odom_msg);
+    //pub_odom.publish(&odom_msg);
+    pub_pos.publish(&pos_msg);
     pub_vel.publish(&vel_msg);
+    pub_puls_L.publish(&pulses_left);
+    pub_puls_R.publish(&pulses_right);
+    
 }
 
 void Velocity()
@@ -113,12 +112,13 @@ void Velocity()
     vx = (RightWheel.linearVelocity + LeftWheel.linearVelocity) / 2;
     vy = 0.0;
     vth = (RightWheel.linearVelocity - LeftWheel.linearVelocity) / baseLine;
-    
-    Serial.print("VX : ");
-    Serial.println(vx);
-    
-    Serial.print("VTH : ");
-    Serial.println(vth);
+}
+
+void Odom()
+{
+    delta_x = delta_x + Dc * cos(delta_th);
+    delta_y = delta_y
+    delta_th = 
 }
 
 void PID()

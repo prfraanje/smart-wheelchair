@@ -17,13 +17,13 @@ double va;
 double vb;
 double vth;
 
-void handle_vel(const geometry_msgs::Twist& vel_msg){
-  vx = vel_msg.linear.x;
-  vy = vel_msg.linear.y;
-  vz = vel_msg.linear.z;
-  va = vel_msg.angular.x;
-  vb = vel_msg.angular.y;
-  vth = vel_msg.angular.z;
+void handle_vel(const geometry_msgs::Twist& pos_msg){
+  vx = pos_msg.linear.x;
+  vy = pos_msg.linear.y;
+  vz = pos_msg.linear.z;
+  va = pos_msg.angular.x;
+  vb = pos_msg.angular.y;
+  vth = pos_msg.angular.z;
 }
 
 int main(int argc, char** argv){
@@ -31,7 +31,7 @@ int main(int argc, char** argv){
 
   ros::NodeHandle n;
   ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
-  ros::Subscriber sub_vel = n.subscribe("current_vel_xyz", 100, handle_vel);
+  ros::Subscriber sub_vel = n.subscribe("current_pos_xz", 100, handle_vel);
   tf::TransformBroadcaster odom_broadcaster;
 
   x = 0.0;
@@ -42,32 +42,25 @@ int main(int argc, char** argv){
   vy = 0.0;
   vth = 0.0;
 
-  ros::Time current_time, last_time;
-  current_time = ros::Time::now();
-  last_time = ros::Time::now();
-
   ros::Rate r(100.0);
   while(n.ok()){
 
     ros::spinOnce();               // check for incoming messages
-    current_time = ros::Time::now();
 
     //compute odometry in a typical way given the velocities of the robot
-    double dt = (current_time - last_time).toSec();
-    double delta_x = (vx * cos(th) - vy * sin(th)) * dt;
-    double delta_y = (vx * sin(th) + vy * cos(th)) * dt;
-    double delta_th = vth * dt;
+    //double delta_x = (vx * cos(th) - vy * sin(th)) * 0.01;
+    //double delta_y = (vx * sin(th) + vy * cos(th)) * 0.01;
+    //double delta_th = vth * 0.01;
 
-    x += delta_x;
-    y += delta_y;
-    th += delta_th;
+    //x += delta_x;
+    //y += delta_y;
+    //th += delta_th;
 
     //since all odometry is 6DOF we'll need a quaternion created from yaw
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
 
     //first, we'll publish the transform over tf
     geometry_msgs::TransformStamped odom_trans;
-    odom_trans.header.stamp = current_time;
     odom_trans.header.frame_id = "odom";
     odom_trans.child_frame_id = "base_link";
 
@@ -81,7 +74,6 @@ int main(int argc, char** argv){
 
     //next, we'll publish the odometry message over ROS
     nav_msgs::Odometry odom;
-    odom.header.stamp = current_time;
     odom.header.frame_id = "odom";
 
     //set the position
@@ -102,7 +94,6 @@ int main(int argc, char** argv){
     //cout << "VX: " << vx << endl;
     //cout << "VTH: " << vth << endl;
 
-    last_time = current_time;
     r.sleep();
   }
 }

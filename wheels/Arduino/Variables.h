@@ -44,11 +44,17 @@ double angularSpeed = 0;
 
 ros::NodeHandle nh;
 
-geometry_msgs::Vector3Stamped odom_msg;
-geometry_msgs::Vector3Stamped vel_msg;
+//geometry_msgs::Twist odom_msg;
+geometry_msgs::Twist vel_msg;
+geometry_msgs::Twist pos_msg;
+std_msgs::Float64 pulses_left;
+std_msgs::Float64 pulses_right;
 
-ros::Publisher pub_odom("odom_xy", &odom_msg);
+//ros::Publisher pub_odom("odom_xy", &odom_msg);
 ros::Publisher pub_vel("current_vel_xyz", &vel_msg);
+ros::Publisher pub_pos("current_pos_xz", &pos_msg);
+ros::Publisher pub_puls_L("pulses_left", &pulses_left);
+ros::Publisher pub_puls_R("pulses_right", &pulses_right);
 
 double x = 0.0;
 double y = 0.0;
@@ -57,5 +63,9 @@ double th = 0.0;
 double vx = 0;
 double vy = 0;
 double vth = 0;
+
+double delta_x = 0.0;
+double delta_y = 0.0;
+double delta_th = 0.0;
 
 #endif /* VARIABLES_H */
