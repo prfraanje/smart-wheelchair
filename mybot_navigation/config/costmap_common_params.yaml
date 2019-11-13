@@ -1,0 +1,6 @@
+obstacle_range: 5.0
+raytrace_range: 5.0
+footprint: [[-0.50, -0.40], [-0.50, 0.40], [0.50, 0.40], [0.50, -0.40]]
+inflation_radius: 1.0
+observation_sources: laser_scan_sensor #point_cloud_sensor
+laser_scan_sensor: {sensor_frame: rplidar, data_type: LaserScan, topic: /scan, marking: true, clearing: true}

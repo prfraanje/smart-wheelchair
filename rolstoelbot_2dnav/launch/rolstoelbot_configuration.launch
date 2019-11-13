@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<launch>
+
+ <param name="robot_description" command="$(find xacro)/xacro.py '$(find mybot_description)/urdf/rolstoelbot.xacro'"/>
+	
+  <!-- send fake joint values -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+  </node>
+
+  <!-- Combine joint values -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
+
+  <!-- Show in Rviz   -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mybot_description)/rviz/amcl.rviz"/>
+
+  <node pkg="rosserial_python" type="serial_node.py" name="serial_node" output="screen"/>
+
+  <node pkg="my_odom_configuration_dep" type="odom_node.cpp" name="odom_node" output="screen"/>
+
+  <!-- Map server -->
+  <arg name="map_file" default="$(find mybot_navigation)/maps/map.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+
+  <!-- Place map frame at odometry frame -->
+  <node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster"
+      args="0 0 0 0 0 0 map odom 100"/>
+
+  <!-- Localization -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <remap from="scan" to="/scan"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="odom_model_type" value="diff-corrected"/>
+    <param name="global_frame_id" value="map" />
+    <param name="base_frame_id" value="base_link"/>
+    <param name="update_min_d" value="0.1"/>
+    <param name="update_min_a" value="0.1"/>
+  </node>
+  <!--include file="$(find amcl)/examples/amcl_omni.launch"/-->
+
+  <!-- Move base -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find mybot_navigation)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find mybot_navigation)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find mybot_navigation)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find mybot_navigation)/config/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find mybot_navigation)/config/base_local_planner_params.yaml" command="load" />
+    
+    <remap from="cmd_vel" to="cmd_vel"/>
+    <remap from="odom" to="odom"/>
+    <remap from="scan" to="scan"/>
+  </node>
+
+</launch> 
