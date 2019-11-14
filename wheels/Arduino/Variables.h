@@ -9,8 +9,8 @@
 
 #define M_PI  3.14159265358979323846
 
-int encoderPin1 = 2;
-int encoderPin2 = 3;
+int encoderPin1 = A2;
+int encoderPin2 = A3;
 int encoderPin3 = A0;
 int encoderPin4 = A1;
 

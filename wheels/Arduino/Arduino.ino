@@ -22,7 +22,7 @@ void updateEncoder();
 
 void setup()
 {    
-    PCMSK1 = B00000011; //enable PCINT8, PCINT9
+    PCMSK1 = B00001111; //enable PCINT8, PCINT9, PCINT10, PCINT11
     PCIFR = B00000000; // clear all interrupt flags
     PCICR = B00000010; // enable PCIE1 group
   
@@ -40,8 +40,8 @@ void setup()
     digitalWrite(encoderPin3, HIGH); //turn pullup resistor on
     digitalWrite(encoderPin4, HIGH); //turn pullup resistor on
   
-    attachInterrupt(0, updateEncoder, CHANGE); 
-    attachInterrupt(1, updateEncoder, CHANGE);
+    //attachInterrupt(0, updateEncoder, CHANGE); 
+    //attachInterrupt(1, updateEncoder, CHANGE);
     
     //Timer1.initialize(10000);
     //Timer1.attachInterrupt(testSoft); 
@@ -58,15 +58,15 @@ void setup()
 void loop()
 {
     //int time_t1 = millis();
-    //nh.spinOnce();
-    //Velocity();
-    //Odom(); 
-    //PID();
-    //Motor();
+    nh.spinOnce();
+    Velocity();
+    Odom(); 
+    PID();
+    Motor();
     Publish();
     //int time_t2 = millis() - time_t1;
     //Serial.println(time_t2);
-    //delay(10);
+    delay(10);
 }
 
 // void testSoft()
@@ -96,8 +96,8 @@ void Publish()
     pub_pos.publish(&pos_msg);
     pub_cur_vel.publish(&cur_vel_msg);
     pub_vel.publish(&vel_msg);
-    //pub_puls_L.publish(&pulses_left);
-    //pub_puls_R.publish(&pulses_right);
+    pub_puls_L.publish(&pulses_left);
+    pub_puls_R.publish(&pulses_right);
     
 }
 
@@ -189,32 +189,41 @@ void Motor()
 }
 
 // Interrupt for the encoder on the right wheel
-void updateEncoder()
-{
-    int MSB = digitalRead(encoderPin1);
-    int LSB = digitalRead(encoderPin2);
-
-    int encoded = (MSB << 1) |LSB;
-    int sum = (lastEncodedA << 2) | encoded;
-
-    if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) RightWheel.encoderValue ++;
-    if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) RightWheel.encoderValue --;
-
-    lastEncodedA = encoded;
-}
+//void updateEncoder()
+//{
+//    int MSB = digitalRead(encoderPin1);
+//    int LSB = digitalRead(encoderPin2);
+//
+//    int encoded = (MSB << 1) |LSB;
+//    int sum = (lastEncodedA << 2) | encoded;
+//
+//    if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) RightWheel.encoderValue ++;
+//    if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) RightWheel.encoderValue --;
+//
+//    lastEncodedA = encoded;
+//}
 
 // Interrupt for the encoder on the left wheel
 ISR(PCINT1_vect)
 {
-    int MSB = digitalRead(encoderPin3);
-    int LSB = digitalRead(encoderPin4);
+    int MSB_L = digitalRead(encoderPin3);
+    int LSB_L = digitalRead(encoderPin4);
+    int MSB_R = digitalRead(encoderPin1);
+    int LSB_R = digitalRead(encoderPin2);
 
-    int encoded = (MSB << 1) |LSB;
-    int sum = (lastEncodedB << 2) | encoded;
+    int encoded_L = (MSB_L << 1) |LSB_L;
+    int sum_L = (lastEncodedB << 2) | encoded_L;
+    
+    int encoded_R = (MSB_R << 1) |LSB_R;
+    int sum_R = (lastEncodedA << 2) | encoded_R;
 
-    if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) LeftWheel.encoderValue ++;
-    if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) LeftWheel.encoderValue --;
+    if(sum_L == 0b1101 || sum_L == 0b0100 || sum_L == 0b0010 || sum_L == 0b1011) LeftWheel.encoderValue ++;
+    if(sum_L == 0b1110 || sum_L == 0b0111 || sum_L == 0b0001 || sum_L == 0b1000) LeftWheel.encoderValue --;
+    
+    if(sum_R == 0b1101 || sum_R == 0b0100 || sum_R == 0b0010 || sum_R == 0b1011) RightWheel.encoderValue ++;
+    if(sum_R == 0b1110 || sum_R == 0b0111 || sum_R == 0b0001 || sum_R == 0b1000) RightWheel.encoderValue --;
 
-    lastEncodedB = encoded;
+    lastEncodedB = encoded_L;
+    lastEncodedA = encoded_R;
 }
 
