@@ -17,13 +17,14 @@ double va;
 double vb;
 double vth;
 
-void handle_vel(const geometry_msgs::Twist& pos_msg){
-  vx = pos_msg.linear.x;
-  vy = pos_msg.linear.y;
-  vz = pos_msg.linear.z;
-  va = pos_msg.angular.x;
-  vb = pos_msg.angular.y;
-  vth = pos_msg.angular.z;
+void handle_pos(const geometry_msgs::Twist& pos_msg){
+  x = pos_msg.linear.x;
+  th = pos_msg.angular.z;
+}
+
+void handle_vel(const geometry_msgs::Twist& vel_msg){
+  vx = vel_msg.linear.x;
+  vth = vel_msg.angular.z;
 }
 
 int main(int argc, char** argv){
@@ -31,7 +32,8 @@ int main(int argc, char** argv){
 
   ros::NodeHandle n;
   ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
-  ros::Subscriber sub_vel = n.subscribe("current_pos_xz", 100, handle_vel);
+  ros::Subscriber sub_pos = n.subscribe("current_pos_xz", 100, handle_pos);
+  ros::Subscriber sub_vel = n.subscribe("current_vel_xyz", 100, handle_vel);
   tf::TransformBroadcaster odom_broadcaster;
 
   x = 0.0;
@@ -42,19 +44,10 @@ int main(int argc, char** argv){
   vy = 0.0;
   vth = 0.0;
 
-  ros::Rate r(100.0);
+  //ros::Rate r(1000.0);
   while(n.ok()){
 
     ros::spinOnce();               // check for incoming messages
-
-    //compute odometry in a typical way given the velocities of the robot
-    //double delta_x = (vx * cos(th) - vy * sin(th)) * 0.01;
-    //double delta_y = (vx * sin(th) + vy * cos(th)) * 0.01;
-    //double delta_th = vth * 0.01;
-
-    //x += delta_x;
-    //y += delta_y;
-    //th += delta_th;
 
     //since all odometry is 6DOF we'll need a quaternion created from yaw
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
@@ -78,14 +71,14 @@ int main(int argc, char** argv){
 
     //set the position
     odom.pose.pose.position.x = x;
-    odom.pose.pose.position.y = y;
+    odom.pose.pose.position.y = 0.0;
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = odom_quat;
 
     //set the velocity
     odom.child_frame_id = "base_link";
     odom.twist.twist.linear.x = vx;
-    odom.twist.twist.linear.y = vy;
+    odom.twist.twist.linear.y = 0.0;
     odom.twist.twist.angular.z = vth;
 
     //publish the message
@@ -93,7 +86,6 @@ int main(int argc, char** argv){
 
     //cout << "VX: " << vx << endl;
     //cout << "VTH: " << vth << endl;
-
-    r.sleep();
+    //r.sleep();
   }
 }

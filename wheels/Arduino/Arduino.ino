@@ -48,53 +48,56 @@ void setup()
     nh.initNode();
     nh.getHardware()->setBaud(57600);
     nh.subscribe(sub);
-    //nh.advertise(pub_odom);
     nh.advertise(pub_pos);
     nh.advertise(pub_vel);
+    nh.advertise(pub_cur_vel);
     nh.advertise(pub_puls_L);
     nh.advertise(pub_puls_R);
 }
 
 void loop()
 {
-    nh.spinOnce();
-    Velocity();
-    Odom(); 
-    PID();
-    Motor();
+    //int time_t1 = millis();
+    //nh.spinOnce();
+    //Velocity();
+    //Odom(); 
+    //PID();
+    //Motor();
     Publish();
-    delay(10);
+    //int time_t2 = millis() - time_t1;
+    //Serial.println(time_t2);
+    //delay(10);
 }
 
 // void testSoft()
 // {
-//     Velocity();
-//     PID();
-//     Motor();
+      //nh.spinOnce();
+      //Velocity();
+      //Odom(); 
+      //PID();
+      //Motor();
 // }
 
 void Publish()
 {
-    //odom_msg.header.stamp = nh.now();
-    //odom_msg.vector.x = x;
-    //odom_msg.vector.y = y;
-    //odom_msg.vector.z = th;
-    
     vel_msg.linear.x = vx;
     vel_msg.angular.z = vth;
     
-    pos_msg.linear.x = delta_x;
-    pos_msg.linear.y = delta_y;
-    pos_msg.angular.z = delta_th;
+    cur_vel_msg.linear.x = vx * 100;
+    cur_vel_msg.angular.z = vth * 100;
+    
+    pos_msg.linear.x = x;
+    pos_msg.linear.y = 0.0;
+    pos_msg.angular.z = th;
     
     pulses_left.data = LeftWheel.pulsesPerSecond;
     pulses_right.data = RightWheel.pulsesPerSecond;
 
-    //pub_odom.publish(&odom_msg);
     pub_pos.publish(&pos_msg);
+    pub_cur_vel.publish(&cur_vel_msg);
     pub_vel.publish(&vel_msg);
-    pub_puls_L.publish(&pulses_left);
-    pub_puls_R.publish(&pulses_right);
+    //pub_puls_L.publish(&pulses_left);
+    //pub_puls_R.publish(&pulses_right);
     
 }
 
@@ -103,22 +106,26 @@ void Velocity()
     LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 100;
     RightWheel.pulsesPerSecond = RightWheel.encoderValue * 100;
 
+    LeftWheel.linearVelocity = (LeftWheel.encoderValue * meterPerPuls) / wheelRadius;
+    RightWheel.linearVelocity = (RightWheel.encoderValue * meterPerPuls) / wheelRadius;
+    
     LeftWheel.encoderValue = 0;
     RightWheel.encoderValue = 0;
 
-    LeftWheel.linearVelocity = LeftWheel.pulsesPerSecond * meterPerPuls;
-    RightWheel.linearVelocity = RightWheel.pulsesPerSecond * meterPerPuls;
-
     vx = (RightWheel.linearVelocity + LeftWheel.linearVelocity) / 2;
     vy = 0.0;
-    vth = (RightWheel.linearVelocity - LeftWheel.linearVelocity) / baseLine;
+    vth = (RightWheel.linearVelocity - LeftWheel.linearVelocity) * (wheelRadius / baseLine);
 }
 
 void Odom()
 {
-    delta_x = delta_x + Dc * cos(delta_th);
-    delta_y = delta_y
-    delta_th = 
+    double delta_x = (vx * cos(th) - vy * sin(th));
+    //double delta_y = (vx * sin(th) + vy * cos(th));
+    double delta_th = vth;
+ 
+    x += delta_x;
+    //y += delta_y;
+    th += delta_th;   
 }
 
 void PID()
@@ -151,12 +158,12 @@ void PID()
 
 void Motor()
 {
-    LeftWheel.speedCommand = ((2 * linearSpeed) + (angularSpeed * baseLine)) / (2 * wheelRadius);
-    LeftWheel.speedCommand = pulsesPerRotation * (LeftWheel.speedCommand / (2 * M_PI));
+    LeftWheel.speedCommand = ((2 * (linearSpeed * wheelRadius)) - (angularSpeed * baseLine)) / (2 * wheelRadius);
+    LeftWheel.speedCommand = (LeftWheel.speedCommand * wheelRadius) / meterPerPuls;
+    
 
-    RightWheel.speedCommand = ((2 * linearSpeed) - (angularSpeed * baseLine)) / (2 * wheelRadius);
-    RightWheel.speedCommand = pulsesPerRotation * (RightWheel.speedCommand / (2 * M_PI));
-
+    RightWheel.speedCommand = ((2 * (linearSpeed * wheelRadius)) + (angularSpeed * baseLine)) / (2 * wheelRadius);
+    RightWheel.speedCommand = (RightWheel.speedCommand * wheelRadius) / meterPerPuls;
 
     if(LeftWheel.totalOutput < 0)
     {
