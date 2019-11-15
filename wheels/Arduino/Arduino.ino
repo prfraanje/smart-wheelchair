@@ -2,7 +2,7 @@
 #include <ros/time.h> 
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Float64.h>
-//#include <TimerOne.h>
+#include <TimerOne.h>
 #include "Variables.h"
 
 void handle_cmd(const geometry_msgs::Twist& cmd_msg){
@@ -43,68 +43,71 @@ void setup()
     //attachInterrupt(0, updateEncoder, CHANGE); 
     //attachInterrupt(1, updateEncoder, CHANGE);
     
-    //Timer1.initialize(10000);
-    //Timer1.attachInterrupt(testSoft); 
+    Timer1.initialize(50000);
+    Timer1.attachInterrupt(testSoft); 
     nh.initNode();
     nh.getHardware()->setBaud(57600);
     nh.subscribe(sub);
     nh.advertise(pub_pos);
     nh.advertise(pub_vel);
     nh.advertise(pub_cur_vel);
-    nh.advertise(pub_puls_L);
-    nh.advertise(pub_puls_R);
+    //nh.advertise(pub_puls_L);
+    //nh.advertise(pub_puls_R);
 }
 
 void loop()
 {
     //int time_t1 = millis();
     nh.spinOnce();
-    Velocity();
-    Odom(); 
-    PID();
-    Motor();
+    //Velocity();
+    //Odom(); 
+    //PID();
+    //Motor();
     Publish();
+    delay(10);
     //int time_t2 = millis() - time_t1;
     //Serial.println(time_t2);
-    delay(10);
+    ///delay(10);
 }
 
-// void testSoft()
-// {
-      //nh.spinOnce();
-      //Velocity();
-      //Odom(); 
-      //PID();
-      //Motor();
-// }
+void testSoft()
+{
+     //int time_t1 = millis();
+     Velocity();
+     Odom(); 
+     PID();
+     Motor();
+     //nh.spinOnce();
+     //int time_t2 = millis() - time_t1;
+     //Serial.println(time_t2);
+}
 
 void Publish()
 {
     vel_msg.linear.x = vx;
     vel_msg.angular.z = vth;
     
-    cur_vel_msg.linear.x = vx * 100;
-    cur_vel_msg.angular.z = vth * 100;
+    cur_vel_msg.linear.x = vx * 20;
+    cur_vel_msg.angular.z = vth * 20;
     
     pos_msg.linear.x = x;
-    pos_msg.linear.y = 0.0;
+    pos_msg.linear.y = y;
     pos_msg.angular.z = th;
     
-    pulses_left.data = LeftWheel.pulsesPerSecond;
-    pulses_right.data = RightWheel.pulsesPerSecond;
+    //pulses_left.data = LeftWheel.pulsesPerSecond;
+    //pulses_right.data = RightWheel.pulsesPerSecond;
 
     pub_pos.publish(&pos_msg);
     pub_cur_vel.publish(&cur_vel_msg);
     pub_vel.publish(&vel_msg);
-    pub_puls_L.publish(&pulses_left);
-    pub_puls_R.publish(&pulses_right);
-    
+    //pub_puls_L.publish(&pulses_left);
+    //pub_puls_R.publish(&pulses_right);
 }
 
 void Velocity()
 {
-    LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 100;
-    RightWheel.pulsesPerSecond = RightWheel.encoderValue * 100;
+    LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 20;
+    RightWheel.pulsesPerSecond = RightWheel.encoderValue * 20;
 
     LeftWheel.linearVelocity = (LeftWheel.encoderValue * meterPerPuls) / wheelRadius;
     RightWheel.linearVelocity = (RightWheel.encoderValue * meterPerPuls) / wheelRadius;
@@ -119,12 +122,15 @@ void Velocity()
 
 void Odom()
 {
-    double delta_x = (vx * cos(th) - vy * sin(th));
+    //double delta_x = (vx * cos(th) - vy * sin(th));
     //double delta_y = (vx * sin(th) + vy * cos(th));
+    
+    double delta_x = wheelRadius * vx * cos(th);
+    double delta_y = wheelRadius * vx * sin(th);
     double delta_th = vth;
  
     x += delta_x;
-    //y += delta_y;
+    y += delta_y;
     th += delta_th;   
 }
 

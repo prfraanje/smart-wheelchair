@@ -2,7 +2,6 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
-#include <iostream>
 
 using namespace std;
 
@@ -19,6 +18,7 @@ double vth;
 
 void handle_pos(const geometry_msgs::Twist& pos_msg){
   x = pos_msg.linear.x;
+  y = pos_msg.linear.y;
   th = pos_msg.angular.z;
 }
 
@@ -44,16 +44,23 @@ int main(int argc, char** argv){
   vy = 0.0;
   vth = 0.0;
 
-  //ros::Rate r(1000.0);
+  ros::Time current_time, last_time;
+  current_time = ros::Time::now();
+  last_time = ros::Time::now();
+
+  ros::Rate r(20.0);
   while(n.ok()){
 
     ros::spinOnce();               // check for incoming messages
+    
+    current_time = ros::Time::now();
 
     //since all odometry is 6DOF we'll need a quaternion created from yaw
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
 
     //first, we'll publish the transform over tf
     geometry_msgs::TransformStamped odom_trans;
+    odom_trans.header.stamp = current_time;
     odom_trans.header.frame_id = "odom";
     odom_trans.child_frame_id = "base_link";
 
@@ -67,11 +74,12 @@ int main(int argc, char** argv){
 
     //next, we'll publish the odometry message over ROS
     nav_msgs::Odometry odom;
+    odom.header.stamp = current_time;
     odom.header.frame_id = "odom";
 
     //set the position
     odom.pose.pose.position.x = x;
-    odom.pose.pose.position.y = 0.0;
+    odom.pose.pose.position.y = y;
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = odom_quat;
 
@@ -84,8 +92,7 @@ int main(int argc, char** argv){
     //publish the message
     odom_pub.publish(odom);
 
-    //cout << "VX: " << vx << endl;
-    //cout << "VTH: " << vth << endl;
-    //r.sleep();
+    last_time = current_time;
+    r.sleep();
   }
 }

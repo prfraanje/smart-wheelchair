@@ -5,7 +5,7 @@
 #define leftForward 5
 
 #define rightForward   11
-#define rightBackward  10
+#define rightBackward  3
 
 #define M_PI  3.14159265358979323846
 
