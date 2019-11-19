@@ -25,11 +25,12 @@ struct Wheel {
     double encoderValue = 0;
     double pulsesPerSecond = 0;
     double linearVelocity = 0;
+    double radiantsPerSecond = 0;
 } LeftWheel, RightWheel;
 
-double Kp = 0.15;
-double Ki = 0.1;
-double Kd = 0.1;
+double Kp = 0.2;
+double Ki = 0.4;
+double Kd = 0.0;
 
 volatile long lastEncodedA = 0;
 volatile long lastEncodedB = 0;

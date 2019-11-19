@@ -13,12 +13,12 @@ void handle_cmd(const geometry_msgs::Twist& cmd_msg){
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &handle_cmd);
 
 void PID();
-void Odom();
+void Position();
 void Velocity();
 void Motor();
 void Publish();
+void CMD_VEL();
 void testSoft();
-void updateEncoder();
 
 void setup()
 {    
@@ -39,11 +39,8 @@ void setup()
     digitalWrite(encoderPin2, HIGH); //turn pullup resistor on
     digitalWrite(encoderPin3, HIGH); //turn pullup resistor on
     digitalWrite(encoderPin4, HIGH); //turn pullup resistor on
-  
-    //attachInterrupt(0, updateEncoder, CHANGE); 
-    //attachInterrupt(1, updateEncoder, CHANGE);
     
-    Timer1.initialize(50000);
+    Timer1.initialize(25000);
     Timer1.attachInterrupt(testSoft); 
     nh.initNode();
     nh.getHardware()->setBaud(57600);
@@ -57,29 +54,18 @@ void setup()
 
 void loop()
 {
-    //int time_t1 = millis();
     nh.spinOnce();
-    //Velocity();
-    //Odom(); 
-    //PID();
-    //Motor();
     Publish();
     delay(10);
-    //int time_t2 = millis() - time_t1;
-    //Serial.println(time_t2);
-    ///delay(10);
 }
 
 void testSoft()
 {
-     //int time_t1 = millis();
+     CMD_VEL();
      Velocity();
-     Odom(); 
+     Position(); 
      PID();
      Motor();
-     //nh.spinOnce();
-     //int time_t2 = millis() - time_t1;
-     //Serial.println(time_t2);
 }
 
 void Publish()
@@ -87,8 +73,8 @@ void Publish()
     vel_msg.linear.x = vx;
     vel_msg.angular.z = vth;
     
-    cur_vel_msg.linear.x = vx * 20;
-    cur_vel_msg.angular.z = vth * 20;
+    cur_vel_msg.linear.x = vx * 40;
+    cur_vel_msg.angular.z = vth * 40;
     
     pos_msg.linear.x = x;
     pos_msg.linear.y = y;
@@ -104,31 +90,44 @@ void Publish()
     //pub_puls_R.publish(&pulses_right);
 }
 
+void CMD_VEL()
+{
+    LeftWheel.radiantsPerSecond = ((2 * linearSpeed) - (angularSpeed * baseLine)) / (2 * wheelRadius);
+    LeftWheel.speedCommand = (LeftWheel.radiantsPerSecond  * wheelRadius) / meterPerPuls;
+    
+
+    RightWheel.radiantsPerSecond  = ((2 * linearSpeed) + (angularSpeed * baseLine)) / (2 * wheelRadius);
+    RightWheel.speedCommand = (RightWheel.radiantsPerSecond  * wheelRadius) / meterPerPuls;
+}
+
 void Velocity()
 {
-    LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 20;
-    RightWheel.pulsesPerSecond = RightWheel.encoderValue * 20;
-
-    LeftWheel.linearVelocity = (LeftWheel.encoderValue * meterPerPuls) / wheelRadius;
-    RightWheel.linearVelocity = (RightWheel.encoderValue * meterPerPuls) / wheelRadius;
+    // calculate pulses per second
+    LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 40;
+    RightWheel.pulsesPerSecond = RightWheel.encoderValue * 40;
     
+    // calculate current speed in meters per sample (25 ms)
+    LeftWheel.linearVelocity = (LeftWheel.encoderValue * meterPerPuls);
+    RightWheel.linearVelocity = (RightWheel.encoderValue * meterPerPuls);
+    
+    // reset encoder count
     LeftWheel.encoderValue = 0;
     RightWheel.encoderValue = 0;
 
+    // calculate origin speed of the robot per sample (25 ms)
     vx = (RightWheel.linearVelocity + LeftWheel.linearVelocity) / 2;
     vy = 0.0;
-    vth = (RightWheel.linearVelocity - LeftWheel.linearVelocity) * (wheelRadius / baseLine);
+    vth = ((RightWheel.linearVelocity - LeftWheel.linearVelocity) / (baseLine));
 }
 
-void Odom()
-{
-    //double delta_x = (vx * cos(th) - vy * sin(th));
-    //double delta_y = (vx * sin(th) + vy * cos(th));
-    
-    double delta_x = wheelRadius * vx * cos(th);
-    double delta_y = wheelRadius * vx * sin(th);
+void Position()
+{ 
+    //  calculate distance travelled
+    double delta_x = vx * cos(th);
+    double delta_y = vx * sin(th);
     double delta_th = vth;
  
+    // calculate current position
     x += delta_x;
     y += delta_y;
     th += delta_th;   
@@ -136,18 +135,23 @@ void Odom()
 
 void PID()
 {
+    // calculate current error
     LeftWheel.error = LeftWheel.speedCommand - LeftWheel.pulsesPerSecond;
     RightWheel.error = RightWheel.speedCommand - RightWheel.pulsesPerSecond;
-
+    
+    // calculate integral error
     LeftWheel.somError = LeftWheel.somError + LeftWheel.error;
     RightWheel.somError = RightWheel.somError + RightWheel.error;
 
+    // calculate differential error
     LeftWheel.deltaError = LeftWheel.error - LeftWheel.previousError;
     RightWheel.deltaError = RightWheel.error - RightWheel.previousError;
 
+    // set previous error to current error
     LeftWheel.previousError = LeftWheel.error;
     RightWheel.previousError = RightWheel.error;
 
+    // calculate output needed to reach the speed command
     LeftWheel.totalOutput = (Kp * LeftWheel.error) + (Ki * LeftWheel.somError) + (Kd * LeftWheel.deltaError);
     RightWheel.totalOutput = (Kp * RightWheel.error) + (Ki * RightWheel.somError) + (Kd * RightWheel.deltaError);
 
@@ -164,13 +168,6 @@ void PID()
 
 void Motor()
 {
-    LeftWheel.speedCommand = ((2 * (linearSpeed * wheelRadius)) - (angularSpeed * baseLine)) / (2 * wheelRadius);
-    LeftWheel.speedCommand = (LeftWheel.speedCommand * wheelRadius) / meterPerPuls;
-    
-
-    RightWheel.speedCommand = ((2 * (linearSpeed * wheelRadius)) + (angularSpeed * baseLine)) / (2 * wheelRadius);
-    RightWheel.speedCommand = (RightWheel.speedCommand * wheelRadius) / meterPerPuls;
-
     if(LeftWheel.totalOutput < 0)
     {
         LeftWheel.totalOutput = LeftWheel.totalOutput * -1;
@@ -194,22 +191,7 @@ void Motor()
     }
 }
 
-// Interrupt for the encoder on the right wheel
-//void updateEncoder()
-//{
-//    int MSB = digitalRead(encoderPin1);
-//    int LSB = digitalRead(encoderPin2);
-//
-//    int encoded = (MSB << 1) |LSB;
-//    int sum = (lastEncodedA << 2) | encoded;
-//
-//    if(sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) RightWheel.encoderValue ++;
-//    if(sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) RightWheel.encoderValue --;
-//
-//    lastEncodedA = encoded;
-//}
-
-// Interrupt for the encoder on the left wheel
+// Interrupt for the encoder on the left an d right wheel
 ISR(PCINT1_vect)
 {
     int MSB_L = digitalRead(encoderPin3);
