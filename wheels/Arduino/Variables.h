@@ -45,18 +45,18 @@ double angularSpeed = 0;
 
 ros::NodeHandle nh;
 
-geometry_msgs::Twist cur_vel_msg;
+//geometry_msgs::Twist cur_vel_msg;
 geometry_msgs::Twist vel_msg;
 geometry_msgs::Twist pos_msg;
-std_msgs::Float64 pulses_left;
-std_msgs::Float64 pulses_right;
+//std_msgs::Float64 pulses_left;
+//std_msgs::Float64 pulses_right;
 
 //ros::Publisher pub_odom("odom_xy", &odom_msg);
-ros::Publisher pub_cur_vel("current_real_vel_xyz", &cur_vel_msg);
+//ros::Publisher pub_cur_vel("current_real_vel_xyz", &cur_vel_msg);
 ros::Publisher pub_vel("current_vel_xyz", &vel_msg);
 ros::Publisher pub_pos("current_pos_xz", &pos_msg);
-ros::Publisher pub_puls_L("pulses_left", &pulses_left);
-ros::Publisher pub_puls_R("pulses_right", &pulses_right);
+//ros::Publisher pub_puls_L("pulses_left", &pulses_left);
+//ros::Publisher pub_puls_R("pulses_right", &pulses_right);
 
 double x = 0.0;
 double y = 0.0;

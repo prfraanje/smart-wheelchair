@@ -47,25 +47,38 @@ void setup()
     nh.subscribe(sub);
     nh.advertise(pub_pos);
     nh.advertise(pub_vel);
-    nh.advertise(pub_cur_vel);
+    //nh.advertise(pub_cur_vel);
     //nh.advertise(pub_puls_L);
     //nh.advertise(pub_puls_R);
 }
 
 void loop()
-{
+{   
     nh.spinOnce();
-    Publish();
+    //Publish();
     delay(10);
+    Publish();
+    delay(10);   
 }
 
 void testSoft()
 {
-     CMD_VEL();
-     Velocity();
-     Position(); 
-     PID();
-     Motor();
+    if(nh.connected())
+    {
+      CMD_VEL();
+      Velocity();
+      Position(); 
+      PID();
+      Motor();
+    }else{
+      linearSpeed = 0;
+      angularSpeed = 0;
+      
+      digitalWrite(rightForward, LOW);
+      digitalWrite(rightBackward, LOW);
+      digitalWrite(leftForward, LOW);
+      digitalWrite(leftBackward, LOW);
+    }
 }
 
 void Publish()
@@ -73,8 +86,8 @@ void Publish()
     vel_msg.linear.x = vx;
     vel_msg.angular.z = vth;
     
-    cur_vel_msg.linear.x = vx * 40;
-    cur_vel_msg.angular.z = vth * 40;
+    //cur_vel_msg.linear.x = vx * 40;
+    //cur_vel_msg.angular.z = vth * 40;
     
     pos_msg.linear.x = x;
     pos_msg.linear.y = y;
@@ -84,7 +97,7 @@ void Publish()
     //pulses_right.data = RightWheel.pulsesPerSecond;
 
     pub_pos.publish(&pos_msg);
-    pub_cur_vel.publish(&cur_vel_msg);
+    //pub_cur_vel.publish(&cur_vel_msg);
     pub_vel.publish(&vel_msg);
     //pub_puls_L.publish(&pulses_left);
     //pub_puls_R.publish(&pulses_right);
