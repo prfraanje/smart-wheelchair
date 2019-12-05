@@ -10,6 +10,8 @@ void handle_cmd(const geometry_msgs::Twist& cmd_msg){
   angularSpeed = cmd_msg.angular.z;
 }
 
+unsigned long lastTime = 0;
+
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &handle_cmd);
 
 void PID();
@@ -40,8 +42,8 @@ void setup()
     digitalWrite(encoderPin3, HIGH); //turn pullup resistor on
     digitalWrite(encoderPin4, HIGH); //turn pullup resistor on
     
-    Timer1.initialize(25000);
-    Timer1.attachInterrupt(testSoft); 
+    //Timer1.initialize(25000);
+    //Timer1.attachInterrupt(testSoft); 
     nh.initNode();
     nh.getHardware()->setBaud(57600);
     nh.subscribe(sub);
@@ -50,19 +52,15 @@ void setup()
     //nh.advertise(pub_cur_vel);
     //nh.advertise(pub_puls_L);
     //nh.advertise(pub_puls_R);
+    int lastTime = millis();
 }
 
 void loop()
 {   
-    nh.spinOnce();
-    //Publish();
-    delay(10);
-    Publish();
-    delay(10);   
-}
-
-void testSoft()
-{
+  nh.spinOnce();
+  if(millis() - lastTime >= 50)
+  {
+    lastTime = millis();
     if(nh.connected())
     {
       CMD_VEL();
@@ -70,7 +68,9 @@ void testSoft()
       Position(); 
       PID();
       Motor();
-    }else{
+      Publish();
+    }
+    else{
       linearSpeed = 0;
       angularSpeed = 0;
       
@@ -78,7 +78,20 @@ void testSoft()
       digitalWrite(rightBackward, LOW);
       digitalWrite(leftForward, LOW);
       digitalWrite(leftBackward, LOW);
+      //nh.loginfo("Should shutdown");
     }
+    //delay(100 - millis() + lastTime);
+  }
+}
+
+void testSoft()
+{
+  nh.loginfo("Interrupt");
+  CMD_VEL();
+  Velocity();
+  Position(); 
+  PID();
+  Motor();
 }
 
 void Publish()
@@ -101,6 +114,8 @@ void Publish()
     pub_vel.publish(&vel_msg);
     //pub_puls_L.publish(&pulses_left);
     //pub_puls_R.publish(&pulses_right);
+    
+    nh.spinOnce();
 }
 
 void CMD_VEL()
@@ -185,22 +200,22 @@ void Motor()
     {
         LeftWheel.totalOutput = LeftWheel.totalOutput * -1;
         digitalWrite(leftForward, LOW);
-        analogWrite(leftBackward, LeftWheel.totalOutput / (27.04 * 4));
+        analogWrite(leftBackward, (int) (LeftWheel.totalOutput / (27.04 * 4)));
     }else
     {
         digitalWrite(leftBackward, LOW);
-        analogWrite(leftForward, LeftWheel.totalOutput / (27.04 * 4));
+        analogWrite(leftForward, (int) (LeftWheel.totalOutput / (27.04 * 4)));
     }
     
     if(RightWheel.totalOutput < 0)
     {
         RightWheel.totalOutput = RightWheel.totalOutput * -1;
         digitalWrite(rightForward, LOW);
-        analogWrite(rightBackward, RightWheel.totalOutput / (27.04 * 4));
+        analogWrite(rightBackward, (int) (RightWheel.totalOutput / (27.04 * 4)));
     }else
     {
         digitalWrite(rightBackward, LOW);
-        analogWrite(rightForward, RightWheel.totalOutput / (27.04 * 4));
+        analogWrite(rightForward, (int) (RightWheel.totalOutput / (27.04 * 4)));
     }
 }
 

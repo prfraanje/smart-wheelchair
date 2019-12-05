@@ -83,11 +83,29 @@ int main(int argc, char** argv){
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = odom_quat;
 
+
     //set the velocity
     odom.child_frame_id = "base_link";
     odom.twist.twist.linear.x = vx;
     odom.twist.twist.linear.y = 0.0;
     odom.twist.twist.angular.z = vth;
+
+    //set the covariance
+    //odom.pose.covariance[0] = 0.01;
+    //odom.pose.covariance[7] = 0.01;
+    //odom.pose.covariance[35] = 0.0012;
+    //odom.twist.covariance[0] = 1e-5;
+    //odom.twist.covariance[7] = 1e-5;
+    //odom.twist.covariance[35] = 1.1e-6;
+
+    odom.pose.covariance[0] = 1e5;
+    odom.pose.covariance[7] = 1e5;
+    odom.pose.covariance[35] = 1.2e3;
+    odom.twist.covariance[0] = 1e5;
+    odom.twist.covariance[7] = 1e5;
+    odom.twist.covariance[35] = 1.1e6;
+ 
+ 
 
     //publish the message
     odom_pub.publish(odom);
