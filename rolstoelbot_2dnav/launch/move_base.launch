@@ -1,14 +1,13 @@
 <?xml version="1.0"?>
 <launch>
 
- <arg name="map_file" default="$(find mybot_navigation)/maps/map.yaml"/>
- <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+ <node name="map_server" pkg="map_server" type="map_server" args="$(find mybot_navigation)/maps/map.yaml" />
 
  <!--node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster"
-      args="0 0 0 0 0 0 map odom 100"/-->
-
+      args="0 0 0 0 0 0 map odom 100"/--> 
+ 
  <node pkg="tf" type="static_transform_publisher" name="base_laser_broadcaster"
-      args="0.31 0 0 0 0 0 base_link laser 100"/>
+      args="0 0 0 0 0 0 base_link laser 100"/>
 
  <include file="$(find amcl)/examples/amcl_diff.launch" />
 
@@ -20,9 +19,9 @@
     <rosparam file="$(find mybot_navigation)/config/global_costmap_params.yaml" command="load" />
     <rosparam file="$(find mybot_navigation)/config/base_local_planner_params.yaml" command="load" />
     
-    <remap from="cmd_vel" to="cmd_vel"/>
-    <remap from="odom" to="odom"/>
-    <remap from="scan" to="scan"/>
+    <param name="planner_frequency" type="double" value="5.0" />
+    <param name="controller_frequency" type="double" value="5.0" />
+ 
   </node>
 
 </launch> 
