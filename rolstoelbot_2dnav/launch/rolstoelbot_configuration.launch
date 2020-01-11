@@ -1,21 +1,23 @@
 <?xml version="1.0"?>
 <launch>
 
+ <!--Load our robot model-->
  <param name="robot_description" command="$(find xacro)/xacro.py '$(find mybot_description)/urdf/rolstoelbot.xacro'"/>
 	
+  <!--Publishes robot joints to tf-->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
   </node>
 
+  <!--Publishes our entire robot model to tf-->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher"/>
 
+  <!--Load rviz-->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mybot_description)/rviz/amcl.rviz"/>
 
+  <!--Start rosserial for connection with Arduino-->
   <node pkg="rosserial_python" type="serial_node.py" name="rosserial" output="screen"/>
 
+  <!--Start odom frame publisher-->
   <node pkg="my_odom_configuration_dep" type="odom_node.cpp" name="odom_node" output="screen"/>
-
-  <!--node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true" >
-   <rosparam file="$(find rolstoelbot_2dnav)/param/ekf.yaml" command="load" />
-  </node-->
 
 </launch> 

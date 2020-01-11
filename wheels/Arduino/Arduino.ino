@@ -5,6 +5,7 @@
 #include <TimerOne.h>
 #include "Variables.h"
 
+// this function is called when the line nh.spinOnce() receives the message cmd_vel
 void handle_cmd(const geometry_msgs::Twist& cmd_msg){
   linearSpeed = cmd_msg.linear.x;
   angularSpeed = cmd_msg.angular.z;
@@ -12,7 +13,7 @@ void handle_cmd(const geometry_msgs::Twist& cmd_msg){
 
 unsigned long lastTime = 0;
 
-ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &handle_cmd);
+ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", &handle_cmd);      // see function handle_cmd
 
 void PID();
 void Position();
@@ -20,13 +21,12 @@ void Velocity();
 void Motor();
 void Publish();
 void CMD_VEL();
-void testSoft();
 
 void setup()
 {    
-    PCMSK1 = B00001111; //enable PCINT8, PCINT9, PCINT10, PCINT11
-    PCIFR = B00000000; // clear all interrupt flags
-    PCICR = B00000010; // enable PCIE1 group
+    PCMSK1 = B00001111;   // enable PCINT8, PCINT9, PCINT10, PCINT11, interrupt for encoders and
+    PCIFR = B00000000;    // clear all interrupt flags
+    PCICR = B00000010;    // enable PCIE1 group
   
     pinMode(rightForward, OUTPUT);
     pinMode(rightBackward, OUTPUT);
@@ -42,8 +42,6 @@ void setup()
     digitalWrite(encoderPin3, HIGH); //turn pullup resistor on
     digitalWrite(encoderPin4, HIGH); //turn pullup resistor on
     
-    //Timer1.initialize(25000);
-    //Timer1.attachInterrupt(testSoft); 
     nh.initNode();
     nh.getHardware()->setBaud(57600);
     nh.subscribe(sub);
@@ -57,11 +55,11 @@ void setup()
 
 void loop()
 {   
-  nh.spinOnce();
-  if(millis() - lastTime >= 50)
+  nh.spinOnce();                            // check for subscriber messages in ROS
+  if(millis() - lastTime >= 25)             // make sure loop takes at least 50ms
   {
-    lastTime = millis();
-    if(nh.connected())
+    lastTime = millis();                    
+    if(nh.connected())                      // check for connection between the Arduino and ROS
     {
       CMD_VEL();
       Velocity();
@@ -70,7 +68,7 @@ void loop()
       Motor();
       Publish();
     }
-    else{
+    else{                                   // if connection is lost, set the most important values to zero
       linearSpeed = 0;
       angularSpeed = 0;
       
@@ -78,22 +76,12 @@ void loop()
       digitalWrite(rightBackward, LOW);
       digitalWrite(leftForward, LOW);
       digitalWrite(leftBackward, LOW);
-      //nh.loginfo("Should shutdown");
     }
-    //delay(100 - millis() + lastTime);
   }
 }
 
-void testSoft()
-{
-  nh.loginfo("Interrupt");
-  CMD_VEL();
-  Velocity();
-  Position(); 
-  PID();
-  Motor();
-}
-
+// this function publishes every value generated in this Arduino file to ROS 
+// this is done because the serial monitor of Arduino does not work properly when connected with ROS
 void Publish()
 {
     vel_msg.linear.x = vx;
@@ -118,20 +106,21 @@ void Publish()
     nh.spinOnce();
 }
 
+// this function calculates the speed at which the left and right wheel have to rotate to accomadate the linearSpeed and angularSpeed we receive from ROS
 void CMD_VEL()
 {
     LeftWheel.radiantsPerSecond = ((2 * linearSpeed) - (angularSpeed * baseLine)) / (2 * wheelRadius);
-    LeftWheel.speedCommand = (LeftWheel.radiantsPerSecond  * wheelRadius) / meterPerPuls;
+    LeftWheel.speedCommand = (LeftWheel.radiantsPerSecond  * wheelRadius) / meterPerPuls;                 // this is the result we feed into the PID controller
     
-
     RightWheel.radiantsPerSecond  = ((2 * linearSpeed) + (angularSpeed * baseLine)) / (2 * wheelRadius);
-    RightWheel.speedCommand = (RightWheel.radiantsPerSecond  * wheelRadius) / meterPerPuls;
+    RightWheel.speedCommand = (RightWheel.radiantsPerSecond  * wheelRadius) / meterPerPuls;               // this is the result we feed into the PID controller
 }
 
+// this function calculates the current speed of the robot
 void Velocity()
 {
-    // calculate pulses per second
-    LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 40;
+    // calculate pulses per second from the encoders
+    LeftWheel.pulsesPerSecond = LeftWheel.encoderValue * 40;                // the sample time is 25ms so that's why we multiply with 40
     RightWheel.pulsesPerSecond = RightWheel.encoderValue * 40;
     
     // calculate current speed in meters per sample (25 ms)
@@ -148,6 +137,8 @@ void Velocity()
     vth = ((RightWheel.linearVelocity - LeftWheel.linearVelocity) / (baseLine));
 }
 
+// this function calculates the position of the robot
+// we need this for our odom frame
 void Position()
 { 
     //  calculate distance travelled
@@ -161,6 +152,7 @@ void Position()
     th += delta_th;   
 }
 
+// this function controls the speed of the robot based on the current error
 void PID()
 {
     // calculate current error
@@ -183,9 +175,9 @@ void PID()
     LeftWheel.totalOutput = (Kp * LeftWheel.error) + (Ki * LeftWheel.somError) + (Kd * LeftWheel.deltaError);
     RightWheel.totalOutput = (Kp * RightWheel.error) + (Ki * RightWheel.somError) + (Kd * RightWheel.deltaError);
 
-    if(LeftWheel.totalOutput > 26500)
+    if(LeftWheel.totalOutput > 26500)   // limiter set, otherwise the output will get to large and the robot will display undefined behavior
     {
-      LeftWheel.totalOutput = 26500;
+      LeftWheel.totalOutput = 26500;    // max speed of the robot
     }
 
     if(RightWheel.totalOutput > 26500)
@@ -194,32 +186,33 @@ void PID()
     }
 }
 
+// this function uses the calculated totalOutput in PID to drive the wheels
 void Motor()
 {
-    if(LeftWheel.totalOutput < 0)
+    if(LeftWheel.totalOutput < 0)                                                   // for driving backward
     {
         LeftWheel.totalOutput = LeftWheel.totalOutput * -1;
-        digitalWrite(leftForward, LOW);
-        analogWrite(leftBackward, (int) (LeftWheel.totalOutput / (27.04 * 4)));
-    }else
+        digitalWrite(leftForward, LOW);                                             // set forward output LOW otherwise, forward and backward will both be active and the robot will not move
+        analogWrite(leftBackward, (int) (LeftWheel.totalOutput / (27.04 * 4)));     // the totalOutput is divided by (27.04 * 4) because the robot can only accept values from 0 to 255
+    }else                                                                           // for driving forward
     {
         digitalWrite(leftBackward, LOW);
         analogWrite(leftForward, (int) (LeftWheel.totalOutput / (27.04 * 4)));
     }
     
-    if(RightWheel.totalOutput < 0)
+    if(RightWheel.totalOutput < 0)                                                  // for driving backward
     {
         RightWheel.totalOutput = RightWheel.totalOutput * -1;
         digitalWrite(rightForward, LOW);
         analogWrite(rightBackward, (int) (RightWheel.totalOutput / (27.04 * 4)));
-    }else
+    }else                                                                           // for driving forward
     {
         digitalWrite(rightBackward, LOW);
         analogWrite(rightForward, (int) (RightWheel.totalOutput / (27.04 * 4)));
     }
 }
 
-// Interrupt for the encoder on the left an d right wheel
+// Interrupt for the encoder on the left and right wheel
 ISR(PCINT1_vect)
 {
     int MSB_L = digitalRead(encoderPin3);

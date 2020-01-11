@@ -55,10 +55,10 @@ int main(int argc, char** argv){
     
     current_time = ros::Time::now();
 
-    //since all odometry is 6DOF we'll need a quaternion created from yaw
+    // since all odometry is 6DOF we'll need a quaternion created from yaw
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
 
-    //first, we'll publish the transform over tf
+    // first, we'll publish the transform over tf
     geometry_msgs::TransformStamped odom_trans;
     odom_trans.header.stamp = current_time;
     odom_trans.header.frame_id = "odom";
@@ -69,28 +69,28 @@ int main(int argc, char** argv){
     odom_trans.transform.translation.z = 0.0;
     odom_trans.transform.rotation = odom_quat;
 
-    //send the transform
+    // send the transform
     odom_broadcaster.sendTransform(odom_trans);
 
-    //next, we'll publish the odometry message over ROS
+    // next, we'll publish the odometry message over ROS
     nav_msgs::Odometry odom;
     odom.header.stamp = current_time;
     odom.header.frame_id = "odom";
 
-    //set the position
+    // set the position
     odom.pose.pose.position.x = x;
     odom.pose.pose.position.y = y;
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = odom_quat;
 
 
-    //set the velocity
+    // set the velocity
     odom.child_frame_id = "base_link";
     odom.twist.twist.linear.x = vx;
     odom.twist.twist.linear.y = 0.0;
     odom.twist.twist.angular.z = vth;
 
-    //set the covariance
+    // set the covariance
     //odom.pose.covariance[0] = 0.01;
     //odom.pose.covariance[7] = 0.01;
     //odom.pose.covariance[35] = 0.0012;
@@ -105,9 +105,7 @@ int main(int argc, char** argv){
     odom.twist.covariance[7] = 1e5;
     odom.twist.covariance[35] = 1.1e6;
  
- 
-
-    //publish the message
+    // publish the message
     odom_pub.publish(odom);
 
     last_time = current_time;
