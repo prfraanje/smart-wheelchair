@@ -1,3 +1,8 @@
+/* Implementation of the odomotry calculations of the wheelchair, based on the encoders only.
+   frames in navigation stack: world -> map -> odom -> base
+   This node gives the transformation between odom and base.
+*/ 
+
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
@@ -5,16 +10,16 @@
 
 using namespace std;
 
-double x;
-double y;
-double th;
+double x; // x-coordinate [m] 
+double y; // y-coordinate [m]
+double th; // yaw angle [rad]
 
-double vx;
-double vy;
-double vz;
-double va;
+double vx; // velocity in x-direction [m/s]
+double vy; // velocity in y-direction [m/s]
+//double vz; // velocity in z-direction [m/s]
+double va; 
 double vb;
-double vth;
+double vth; // yaw anglular velocity [rad/s]
 
 void handle_pos(const geometry_msgs::Twist& pos_msg){
   x = pos_msg.linear.x;
@@ -56,6 +61,7 @@ int main(int argc, char** argv){
     current_time = ros::Time::now();
 
     // since all odometry is 6DOF we'll need a quaternion created from yaw
+    // transformation of yaw in radians to quaternion notation (as used by ROS)
     geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
 
     // first, we'll publish the transform over tf
